@@ -1,0 +1,25 @@
+[project]
+name = "bemt"
+version = "0.1.0"
+description = "Benji Eve Market Tool - market restock multibuy list generator"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "httpx>=0.26",
+    "pydantic>=2.5",
+]
+
+[project.optional-dependencies]
+# httpx2 is only for starlette's TestClient, which deprecates httpx 0.x.
+dev = ["pytest>=8.0", "httpx2"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["bemt*"]
+
+[tool.pytest.ini_options]
+filterwarnings = ["error"]

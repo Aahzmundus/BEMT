@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BEMT — Benji Eve Market Tool</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📦</text></svg>">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">BEMT</span>
+      <span class="market" id="market-label"></span>
+    </div>
+    <div class="topbar-actions">
+      <button class="lang" id="lang-toggle" title="English / Hrvatski">EN</button>
+      <button class="ghost" id="settings-toggle" data-i18n="settings">Settings</button>
+      <span class="who" id="who"></span>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="hero">
+      <div class="hero-figure">
+        <span class="hero-number" id="hero-number">—</span>
+        <span class="hero-label" id="hero-label" data-i18n="items_to_buy">items to restock</span>
+      </div>
+      <div class="hero-side">
+        <div class="stamp" id="stamp" data-i18n="never_refreshed">Never refreshed</div>
+        <div class="hero-buttons">
+          <button class="primary" id="refresh" data-i18n="refresh">Refresh</button>
+          <button class="accent" id="copy" data-i18n="copy_multibuy">Copy multibuy</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="notice" id="notice" hidden></div>
+
+    <section class="panel" id="setup" hidden></section>
+
+    <section class="panel" id="settings" hidden>
+      <h2 data-i18n="settings">Settings</h2>
+      <div class="setting">
+        <label><input type="checkbox" id="set-hangar">
+          <span data-i18n="count_hangar">Subtract stock already in the station hangar</span></label>
+        <p class="hint" data-i18n="count_hangar_hint">Items you already own don't need buying again.</p>
+      </div>
+      <div class="setting">
+        <label><input type="checkbox" id="set-import">
+          <span data-i18n="auto_import">Automatically track new items from my sell orders</span></label>
+        <p class="hint" data-i18n="auto_import_hint">New orders get added with their order size as the target. Your own targets are never overwritten.</p>
+      </div>
+      <div class="setting">
+        <label><span data-i18n="lot_size">Round buy quantities up to multiples of</span>
+          <input type="number" id="set-lot" min="0" step="1" class="qty"></label>
+        <p class="hint" data-i18n="lot_size_hint">0 means no rounding.</p>
+      </div>
+      <div class="setting">
+        <span data-i18n="market">Market</span>
+        <div id="market-picker" class="market-picker"></div>
+        <button class="ghost small" id="change-market" data-i18n="change_market">Change market</button>
+      </div>
+      <div class="setting">
+        <button class="ghost small danger" id="logout" data-i18n="log_out">Log out</button>
+      </div>
+    </section>
+
+    <section class="addbar">
+      <input id="add-name" list="name-suggestions" autocomplete="off"
+             data-i18n-ph="add_placeholder" placeholder="Add an item by name…">
+      <datalist id="name-suggestions"></datalist>
+      <input id="add-qty" type="number" min="0" step="1" class="qty" placeholder="0">
+      <button class="ghost" id="add-btn" data-i18n="add">Add</button>
+    </section>
+
+    <div class="grid-wrap">
+    <table class="grid" id="grid">
+      <thead>
+        <tr>
+          <th class="c-name" data-i18n="item">Item</th>
+          <th class="num" data-i18n="target">Target</th>
+          <th class="num" data-i18n="listed">Listed</th>
+          <th class="num hangar-col" data-i18n="hangar">Hangar</th>
+          <th class="num buy" data-i18n="buy">Buy</th>
+          <th class="c-act"></th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    </div>
+
+    <p class="empty" id="empty" hidden data-i18n="empty">Nothing tracked yet. Press Refresh to import your sell orders.</p>
+  </main>
+
+  <script src="/static/i18n.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>

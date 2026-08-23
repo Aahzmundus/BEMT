@@ -1,0 +1,173 @@
+:root {
+  --bg: #10151b;
+  --panel: #182029;
+  --panel-2: #1e2833;
+  --line: #2a3644;
+  --text: #dfe7ef;
+  --muted: #8ea0b3;
+  --accent: #4ea3ff;
+  --accent-2: #37d39a;
+  --bad: #ff6b6b;
+  --warn: #ffb545;
+  --radius: 10px;
+  --mono: "Consolas", "SF Mono", ui-monospace, monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+main { max-width: 940px; margin: 0 auto; padding: 20px 18px 80px; }
+
+/* ---------------------------------------------------------------- top bar */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 12px 18px;
+  background: var(--panel); border-bottom: 1px solid var(--line);
+  position: sticky; top: 0; z-index: 10;
+}
+.brand { display: flex; align-items: baseline; gap: 12px; min-width: 0; }
+.logo { font-weight: 700; letter-spacing: .12em; color: var(--accent); }
+.market { color: var(--muted); font-size: 13px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
+.topbar-actions { display: flex; align-items: center; gap: 10px; }
+.who { color: var(--muted); font-size: 13px; }
+.who a { color: var(--accent); }
+
+/* ---------------------------------------------------------------- buttons */
+button {
+  font: inherit; cursor: pointer; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--text);
+  padding: 8px 14px; transition: background .12s, border-color .12s;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button:disabled { opacity: .5; cursor: default; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #06111d; font-weight: 600; }
+button.accent { background: var(--accent-2); border-color: var(--accent-2); color: #04231a; font-weight: 600; }
+button.ghost { background: transparent; }
+button.small { padding: 5px 10px; font-size: 13px; }
+button.danger { color: var(--bad); border-color: #4a2a2f; }
+button.lang { padding: 5px 9px; font-size: 12px; letter-spacing: .08em; }
+button.link { background: none; border: none; color: var(--muted); padding: 4px 6px; }
+button.link:hover { color: var(--text); }
+
+/* ------------------------------------------------------------------- hero */
+.hero {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 20px; flex-wrap: wrap;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 20px 22px; margin-bottom: 16px;
+}
+.hero-figure { display: flex; align-items: baseline; gap: 12px; }
+.hero-number { font-size: 44px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.hero-number.zero { color: var(--muted); }
+.hero-number.some { color: var(--warn); }
+.hero-label { color: var(--muted); }
+.hero-side { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.hero-buttons { display: flex; gap: 10px; }
+.stamp { color: var(--muted); font-size: 13px; }
+.stamp.stale { color: var(--warn); }
+
+/* ---------------------------------------------------------------- notices */
+.notice {
+  border: 1px solid var(--line); border-left: 3px solid var(--accent);
+  background: var(--panel); border-radius: 8px;
+  padding: 10px 14px; margin-bottom: 14px; font-size: 14px;
+}
+.notice.good { border-left-color: var(--accent-2); }
+.notice.bad { border-left-color: var(--bad); }
+.notice.warn { border-left-color: var(--warn); }
+
+.panel {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 16px 18px; margin-bottom: 16px;
+}
+.panel h2 { margin: 0 0 12px; font-size: 15px; letter-spacing: .04em; color: var(--muted); text-transform: uppercase; }
+.setting { padding: 10px 0; border-top: 1px solid var(--line); }
+.setting:first-of-type { border-top: none; }
+.setting label { display: flex; align-items: center; gap: 9px; }
+.hint { margin: 5px 0 0 26px; color: var(--muted); font-size: 13px; }
+.market-picker { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+.market-option {
+  display: flex; justify-content: space-between; gap: 12px; text-align: left;
+  width: 100%; padding: 9px 12px;
+}
+.market-option .meta { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.market-option.current { border-color: var(--accent); }
+
+/* ---------------------------------------------------------------- add bar */
+.addbar { display: flex; gap: 8px; margin-bottom: 12px; }
+.addbar input {
+  font: inherit; background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px;
+}
+.addbar #add-name { flex: 1; min-width: 0; }
+input.qty { width: 84px; text-align: right; font-variant-numeric: tabular-nums; }
+input:focus { outline: none; border-color: var(--accent); }
+
+/* No spinner arrows. The quantity fields stay type="number" (numeric keypad on
+   a phone, and the browser rejects letters) but the stepper is just clutter -
+   nobody restocks by clicking up-arrow 400 times. */
+input[type="number"] { appearance: textfield; -moz-appearance: textfield; }
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------ table */
+/* Wide content scrolls inside its own box; the page body never scrolls sideways. */
+.grid-wrap { overflow-x: auto; }
+.grid { width: 100%; border-collapse: collapse; }
+.grid th {
+  text-align: left; font-size: 12px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.grid th.num, .grid td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.grid td { padding: 7px 10px; border-bottom: 1px solid rgba(42,54,68,.55); }
+.grid tr.paused td { opacity: .45; }
+.grid td.c-name { display: flex; align-items: center; gap: 8px; }
+.grid td.buy { font-weight: 700; }
+.grid tr.sold_out td.buy { color: var(--bad); }
+.grid tr.low td.buy { color: var(--warn); }
+.grid tr.ok td.buy { color: var(--muted); font-weight: 400; }
+.grid td.c-act { text-align: right; white-space: nowrap; }
+.grid td.c-act button.link { display: inline-flex; align-items: center; gap: 5px; }
+.grid tbody tr:hover { background: rgba(78,163,255,.05); }
+
+.dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px; background: var(--muted); }
+tr.sold_out .dot { background: var(--bad); }
+tr.low .dot { background: var(--warn); }
+tr.ok .dot { background: var(--accent-2); }
+tr.paused .dot { background: var(--line); }
+
+.grid input.target {
+  width: 78px; text-align: right; font: inherit; font-variant-numeric: tabular-nums;
+  background: transparent; color: var(--text);
+  border: 1px solid transparent; border-radius: 6px; padding: 3px 6px;
+}
+.grid input.target:hover { border-color: var(--line); }
+.grid input.target:focus { outline: none; border-color: var(--accent); background: var(--panel-2); }
+.grid input.target.saved { border-color: var(--accent-2); }
+
+.empty { color: var(--muted); text-align: center; padding: 30px 0; }
+
+.center-cta { text-align: center; padding: 26px 0; }
+.center-cta p { color: var(--muted); }
+
+@media (max-width: 620px) {
+  .hero { flex-direction: column; align-items: stretch; }
+  .hero-side { align-items: stretch; }
+  .hero-buttons { justify-content: stretch; }
+  .hero-buttons button { flex: 1; }
+  .hangar-col, td.hangar-col { display: none; }
+  /* Icons only: a text label here costs more width than the column has. */
+  .act-label { display: none; }
+  .grid th, .grid td { padding-left: 6px; padding-right: 6px; }
+}
