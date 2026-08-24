@@ -128,8 +128,15 @@ def hangar_stacks(assets: list[dict], location_id: int) -> dict[int, int]:
 # ------------------------------------------------------------------- par level
 
 def buy_qty(target: int, listed: int, hangar: int = 0, *,
-            count_hangar: bool = True, lot_size: int = 0) -> int:
+            count_hangar: bool = True, lot_size: int = 0,
+            threshold_pct: int = 100) -> int:
     """How many units to buy. Never negative - overstock is not a shopping item.
+
+    ``threshold_pct`` is the reorder point: nothing is bought until stock falls
+    *below* that percentage of the target, and once it does the buy tops back
+    up to the full target (classic par restock). 100 means "buy on any
+    deficit", which is the pre-0.1.1 behaviour. A sold-out item (0 in stock)
+    always triggers.
 
     ``lot_size`` rounds up to a whole lot for anyone who restocks in fixed
     batches; 0 or 1 means no rounding.
@@ -137,6 +144,9 @@ def buy_qty(target: int, listed: int, hangar: int = 0, *,
     have = int(listed) + (int(hangar) if count_hangar else 0)
     need = int(target) - have
     if need <= 0:
+        return 0
+    # Integer comparison of have/target < pct/100, exact - no float edges.
+    if have * 100 >= int(target) * int(threshold_pct):
         return 0
     if lot_size and lot_size > 1:
         need = -(-need // lot_size) * lot_size  # ceil to the next whole lot
@@ -159,7 +169,8 @@ def row_status(target: int, listed: int, buy: int, active: bool) -> str:
 
 
 def build_rows(items: list[dict], stock: dict[int, dict], *,
-               count_hangar: bool = True, lot_size: int = 0) -> list[dict]:
+               count_hangar: bool = True, lot_size: int = 0,
+               threshold_pct: int = 100) -> list[dict]:
     """Join the tracked items with what the last refresh observed.
 
     Sorted the way the list gets used: things to buy first (most urgent, i.e.
@@ -174,9 +185,11 @@ def build_rows(items: list[dict], stock: dict[int, dict], *,
         target = int(it.get("target_qty") or 0)
         active = bool(it.get("active", 1))
         buy = buy_qty(target, listed, hangar, count_hangar=count_hangar,
-                      lot_size=lot_size) if active else 0
+                      lot_size=lot_size,
+                      threshold_pct=threshold_pct) if active else 0
         rows.append({
             "type_id": tid,
+            "character_id": it.get("character_id"),
             "name": it.get("name") or f"Type {tid}",
             "target_qty": target,
             "listed_qty": listed,
@@ -206,6 +219,48 @@ def totals(rows: list[dict]) -> dict:
         "listed_units": sum(r["listed_qty"] for r in rows),
         "hangar_units": sum(r["hangar_qty"] for r in rows),
     }
+
+
+# ------------------------------------------------------------ multi-character
+
+def merge_rows(row_lists: list[list[dict]]) -> list[dict]:
+    """Fold several characters' rows into one shopping list.
+
+    The same item tracked by two characters becomes one line whose quantities
+    are summed - each character still needs their share bought, so the total
+    to shop for is the sum. Paused rows keep their per-character meaning: a
+    row is active in the merge if ANY character tracks it actively, and only
+    active rows contribute quantities.
+    """
+    merged: dict[int, dict] = {}
+    for rows in row_lists:
+        for r in rows:
+            m = merged.setdefault(int(r["type_id"]), {
+                "type_id": int(r["type_id"]), "character_id": None,
+                "name": r["name"], "target_qty": 0, "listed_qty": 0,
+                "hangar_qty": 0, "orders": 0, "price": None, "buy_qty": 0,
+                "active": False, "source": r.get("source") or "manual",
+            })
+            if not r["active"]:
+                continue
+            m["active"] = True
+            m["name"] = r["name"]
+            m["target_qty"] += r["target_qty"]
+            m["listed_qty"] += r["listed_qty"]
+            m["hangar_qty"] += r["hangar_qty"]
+            m["orders"] += r["orders"]
+            m["buy_qty"] += r["buy_qty"]
+            if r["price"] is not None and (m["price"] is None
+                                           or r["price"] < m["price"]):
+                m["price"] = r["price"]
+
+    out = list(merged.values())
+    for m in out:
+        m["status"] = row_status(m["target_qty"], m["listed_qty"],
+                                 m["buy_qty"], m["active"])
+    order = {"sold_out": 0, "low": 1, "ok": 2, "untracked": 3, "paused": 4}
+    out.sort(key=lambda r: (order.get(r["status"], 9), r["name"].lower()))
+    return out
 
 
 # ---------------------------------------------------------------- auto-import

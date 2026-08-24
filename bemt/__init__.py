@@ -7,4 +7,4 @@ Deliberately standalone: this package imports nothing from AEMT, so the folder
 can be copied to another machine and run on its own.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"

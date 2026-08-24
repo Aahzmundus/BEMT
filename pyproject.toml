@@ -1,6 +1,7 @@
 [project]
 name = "bemt"
-version = "0.1.0"
+# Single source of truth for the version is bemt/__init__.py.
+dynamic = ["version"]
 description = "Benji Eve Market Tool - market restock multibuy list generator"
 requires-python = ">=3.11"
 dependencies = [
@@ -20,6 +21,9 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["bemt*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "bemt.__version__"}
 
 [tool.pytest.ini_options]
 filterwarnings = ["error"]

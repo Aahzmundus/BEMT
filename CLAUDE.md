@@ -8,10 +8,11 @@ Guidance for Claude Code (claude.ai/code) working in this repository.
 built for one player. It reads his own sell orders and turns them into an
 in-game multibuy list of what to re-buy. Local FastAPI web app on **port 8425**.
 
-**Scope is deliberately tiny and should stay that way.** One character, one
-market, one question: *what do I re-buy?* It never writes to EVE — no orders,
-no ISK, no assets moved. Resist scope creep; the tool's value is that a
-non-technical user can double-click `run.bat` and be done in ten seconds.
+**Scope is deliberately tiny and should stay that way.** A handful of
+characters (each with their own market and list), one question: *what do I
+re-buy?* It never writes to EVE — no orders, no ISK, no assets moved. Resist
+scope creep; the tool's value is that a non-technical user can double-click
+`run.bat` and be done in ten seconds.
 
 BEMT was built inside a larger private tool (AEMT) to inherit its hard-won EVE
 and architecture learnings, then split out to its own public repo. Everything
@@ -47,7 +48,11 @@ Frontend files (`bemt/web/static/`) are served from disk per request with
 
 ## The restock model (settled — don't re-litigate)
 
-`buy = max(0, target − listed − hangar)`. **Par level, not
+`buy = max(0, target − listed − hangar)`, gated by a **restock threshold**:
+nothing is bought until stock falls *below* `restock_threshold_pct` of the
+target (default 25, strict less-than, integer math in `model.buy_qty`), and
+then the buy tops back up to the FULL target. 100 = buy any deficit (the
+pre-0.1.1 behaviour, and what most legacy tests pin). **Par level, not
 sold-since-last-check.** A par level states the desired end state, so a skipped
 week, a different PC or a restored backup can't corrupt it — it is recomputed
 from the live book every time. A "what sold since last time" model must
@@ -113,13 +118,27 @@ window would cap it anyway.
   and **the market is never guessed when there is more than one candidate** —
   picking one would silently produce a wrong list for the other.
 - **Nothing is hardcoded about location or character.** The market comes from
-  his own orders via the picker.
+  each character's own orders via the picker.
+- **Multi-character (0.1.1, schema rev 2).** `items`/`stock` are keyed by
+  `(character_id, type_id)`; each character row carries its own
+  `location_id`/`location_name`. `db.init()` migrates a rev-1 database in
+  place, handing existing rows to the character from legacy `config.json`
+  fields (kept in `Config` for exactly that) — or to character 0, adopted by
+  the first login (`sso.finish_login`). Refresh loops over all characters;
+  `model.merge_rows` folds per-character rows into the merged shopping list
+  (quantities summed — each character still needs their share). The merged
+  view is read-only when several characters contribute; editing happens in
+  the per-character (separate) view.
+- **Update check (`bemt/update.py`) is notify-and-link only.** It watches
+  GitHub releases (cached 6h in `state`, failures cached too) and the page
+  shows a banner. Never auto-download/overwrite a running install — a
+  half-replaced folder bricks it for a non-technical user.
 
 ## Frontend
 
-Vanilla JS, no framework, no build step. `i18n.js` holds **EN + HR** strings and
-the top-right button switches live; the choice persists server-side. **Any new
-UI string must be added to both tables.**
+Vanilla JS, no framework, no build step. `i18n.js` holds **EN + HR + NL + FR**
+strings and the top-right selector switches live; the choice persists
+server-side. **Any new UI string must be added to all four tables.**
 
 Verify UI changes by DOM / computed-style query against a **throwaway instance
 on a spare port** — a script that repoints `bemt.paths.DB_PATH` and

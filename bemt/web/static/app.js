@@ -35,6 +35,8 @@ const jsonPost = (path, payload, method = "POST") => api(path, {
 
 // ------------------------------------------------------------------ helpers
 
+const chars = () => (STATE && STATE.by_character) || [];
+
 function ago(seconds) {
   if (seconds == null) return null;
   if (seconds < 90) return t("refreshed_just_now");
@@ -59,7 +61,7 @@ function applyStaticText() {
   document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
     el.placeholder = t(el.dataset.i18nPh);
   });
-  $("lang-toggle").textContent = LANG === "en" ? "EN" : "HR";
+  $("lang-select").value = LANG;
   document.documentElement.lang = LANG;
 }
 
@@ -71,20 +73,22 @@ function render() {
 
   const s = STATE.settings || {};
   const totals = STATE.totals || {};
-  const character = STATE.character;
+  const cs = chars();
 
   // who + market
   const who = $("who");
   who.innerHTML = "";
-  if (character) {
-    who.textContent = `${t("logged_in_as")} ${character.name}`;
+  if (cs.length === 1) {
+    who.textContent = `${t("logged_in_as")} ${cs[0].name}`;
+  } else if (cs.length > 1) {
+    who.textContent = t("characters_n", { n: cs.length });
   } else {
     const a = document.createElement("a");
     a.href = "/auth/login";
     a.textContent = t("log_in");
     who.appendChild(a);
   }
-  $("market-label").textContent = s.location_name || "";
+  $("market-label").textContent = cs.length === 1 ? (cs[0].location_name || "") : "";
 
   // hero
   const buying = totals.buy_lines || 0;
@@ -108,59 +112,156 @@ function render() {
   $("set-hangar").checked = !!s.count_hangar;
   $("set-import").checked = !!s.auto_import;
   $("set-lot").value = s.buy_lot_size ?? 0;
-  document.querySelectorAll(".hangar-col").forEach((el) => {
-    el.style.display = s.count_hangar ? "" : "none";
-  });
+  $("set-threshold").value = s.restock_threshold_pct ?? 25;
+  $("set-merge").checked = !!s.merge_characters;
+  renderCharList(cs);
+  renderAddCharSelect(cs);
 
   // scope re-login prompt
-  if (character && character.missing_scopes && character.missing_scopes.length) {
+  if (cs.some((c) => c.missing_scopes && c.missing_scopes.length)) {
     notice(t("scopes_needed"), "warn");
   }
 
   renderRows();
 }
 
+function renderCharList(cs) {
+  const box = $("char-list");
+  box.innerHTML = "";
+  for (const c of cs) {
+    const row = document.createElement("div");
+    row.className = "char-row";
+    const nm = document.createElement("span");
+    nm.className = "char-name";
+    nm.textContent = c.name;
+    const mkt = document.createElement("span");
+    mkt.className = "meta";
+    mkt.textContent = c.location_name || "";
+    row.append(nm, mkt);
+    const pick = document.createElement("button");
+    pick.className = "ghost small";
+    pick.textContent = t("change_market");
+    pick.addEventListener("click", () => openMarketPicker(c));
+    const out = document.createElement("button");
+    out.className = "ghost small danger";
+    out.textContent = t("log_out");
+    out.addEventListener("click", async () => {
+      if (!confirm(t("remove_character_confirm", { name: c.name }))) return;
+      STATE = await api(`/api/characters/${c.character_id}`, { method: "DELETE" });
+      render();
+    });
+    row.append(pick, out);
+    box.appendChild(row);
+  }
+}
+
+function renderAddCharSelect(cs) {
+  const sel = $("add-char");
+  sel.innerHTML = "";
+  for (const c of cs) {
+    const opt = document.createElement("option");
+    opt.value = c.character_id;
+    opt.textContent = c.name;
+    sel.appendChild(opt);
+  }
+  sel.hidden = cs.length < 2;
+}
+
 function renderRows() {
   const tbody = $("rows");
   tbody.innerHTML = "";
-  const rows = STATE.rows || [];
-  $("empty").hidden = rows.length > 0;
+  const s = STATE.settings || {};
+  const cs = chars();
+  const merged = !!s.merge_characters;
+
+  let any = false;
+  if (merged && cs.length > 1) {
+    // The merged shopping view: one line per item, quantities summed across
+    // characters. Per-character editing lives in the separate view.
+    any = STATE.rows.length > 0;
+    for (const r of STATE.rows) tbody.appendChild(rowTr(r, null, false));
+  } else if (cs.length <= 1) {
+    const rows = cs.length === 1 ? cs[0].rows : (STATE.rows || []);
+    const cid = cs.length === 1 ? cs[0].character_id : null;
+    any = rows.length > 0;
+    for (const r of rows) tbody.appendChild(rowTr(r, cid, cid != null));
+  } else {
+    // Separate view: a header per character with its own copy button.
+    for (const c of cs) {
+      tbody.appendChild(charHeadTr(c));
+      any = any || c.rows.length > 0;
+      for (const r of c.rows) tbody.appendChild(rowTr(r, c.character_id, true));
+    }
+  }
+
+  $("empty").hidden = any;
   $("empty").textContent = t("empty");
+  document.querySelectorAll(".hangar-col").forEach((el) => {
+    el.style.display = s.count_hangar ? "" : "none";
+  });
+}
 
-  for (const r of rows) {
-    const tr = document.createElement("tr");
-    tr.className = r.status;
+function charHeadTr(c) {
+  const tr = document.createElement("tr");
+  tr.className = "char-head";
+  const td = document.createElement("td");
+  td.colSpan = 6;
+  const nm = document.createElement("strong");
+  nm.textContent = c.name;
+  const mkt = document.createElement("span");
+  mkt.className = "meta";
+  mkt.textContent = c.location_name ? ` — ${c.location_name}` : "";
+  td.append(nm, mkt);
+  if (c.multibuy) {
+    const copy = document.createElement("button");
+    copy.className = "ghost small";
+    copy.textContent = t("copy_multibuy");
+    copy.addEventListener("click", () => copyText(c.multibuy));
+    td.appendChild(copy);
+  }
+  tr.appendChild(td);
+  return tr;
+}
 
-    const name = document.createElement("td");
-    name.className = "c-name";
-    const dot = document.createElement("span");
-    dot.className = "dot";
-    dot.title = t(r.status === "untracked" ? "ok" : r.status);
-    name.append(dot, document.createTextNode(r.name));
-    tr.appendChild(name);
+function rowTr(r, cid, editable) {
+  const tr = document.createElement("tr");
+  tr.className = r.status;
 
-    const target = document.createElement("td");
-    target.className = "num";
+  const name = document.createElement("td");
+  name.className = "c-name";
+  const dot = document.createElement("span");
+  dot.className = "dot";
+  dot.title = t(r.status === "untracked" ? "ok" : r.status);
+  name.append(dot, document.createTextNode(r.name));
+  tr.appendChild(name);
+
+  const target = document.createElement("td");
+  target.className = "num";
+  if (editable) {
     const input = document.createElement("input");
     input.type = "number";
     input.min = "0";
     input.className = "target";
     input.value = r.target_qty;
-    input.addEventListener("change", () => saveTarget(r.type_id, input));
+    input.addEventListener("change", () => saveTarget(cid, r.type_id, input));
     target.appendChild(input);
-    tr.appendChild(target);
+  } else {
+    target.textContent = r.target_qty;
+  }
+  tr.appendChild(target);
 
-    tr.appendChild(cell(r.listed_qty, "num"));
-    tr.appendChild(cell(r.hangar_qty, "num hangar-col"));
-    // A zero here is left blank on purpose: "nothing to buy" should read as
-    // quiet, not as a column of noisy zeroes competing with the real numbers.
-    tr.appendChild(cell(r.buy_qty ? r.buy_qty : "", "num buy"));
+  tr.appendChild(cell(r.listed_qty, "num"));
+  tr.appendChild(cell(r.hangar_qty, "num hangar-col"));
+  // A zero here is left blank on purpose: "nothing to buy" should read as
+  // quiet, not as a column of noisy zeroes competing with the real numbers.
+  tr.appendChild(cell(r.buy_qty ? r.buy_qty : "", "num buy"));
 
-    const act = document.createElement("td");
-    act.className = "c-act";
+  const act = document.createElement("td");
+  act.className = "c-act";
+  if (editable) {
     // Icon plus label: the label is hidden on a narrow screen (CSS) so the
     // action column can't push the table into a horizontal scroll.
-    const pause = linkButton("", () => patchItem(r.type_id, { active: !r.active }),
+    const pause = linkButton("", () => patchItem(cid, r.type_id, { active: !r.active }),
       r.active ? t("pause") : t("resume"));
     const ico = document.createElement("span");
     ico.textContent = r.active ? "⏸" : "▶";
@@ -170,16 +271,11 @@ function renderRows() {
     pause.append(ico, label);
     act.appendChild(pause);
     act.appendChild(linkButton("✕", () => {
-      if (confirm(t("remove_confirm", { name: r.name }))) removeItem(r.type_id);
+      if (confirm(t("remove_confirm", { name: r.name }))) removeItem(cid, r.type_id);
     }, t("remove")));
-    tr.appendChild(act);
-
-    tbody.appendChild(tr);
   }
-  const s = STATE.settings || {};
-  document.querySelectorAll(".hangar-col").forEach((el) => {
-    el.style.display = s.count_hangar ? "" : "none";
-  });
+  tr.appendChild(act);
+  return tr;
 }
 
 function cell(text, cls) {
@@ -200,10 +296,10 @@ function linkButton(label, onClick, title) {
 
 // ------------------------------------------------------------------ actions
 
-async function saveTarget(typeId, input) {
+async function saveTarget(cid, typeId, input) {
   const value = Math.max(0, parseInt(input.value, 10) || 0);
   input.value = value;
-  STATE = await jsonPost(`/api/items/${typeId}`, { target_qty: value }, "PATCH");
+  STATE = await jsonPost(`/api/items/${cid}/${typeId}`, { target_qty: value }, "PATCH");
   input.classList.add("saved");
   render();
   // Re-find the (re-rendered) input and flash it, so an edit visibly landed.
@@ -211,13 +307,13 @@ async function saveTarget(typeId, input) {
     .forEach((el) => el.classList.remove("saved")), 700);
 }
 
-async function patchItem(typeId, payload) {
-  STATE = await jsonPost(`/api/items/${typeId}`, payload, "PATCH");
+async function patchItem(cid, typeId, payload) {
+  STATE = await jsonPost(`/api/items/${cid}/${typeId}`, payload, "PATCH");
   render();
 }
 
-async function removeItem(typeId) {
-  STATE = await api(`/api/items/${typeId}`, { method: "DELETE" });
+async function removeItem(cid, typeId) {
+  STATE = await api(`/api/items/${cid}/${typeId}`, { method: "DELETE" });
   render();
 }
 
@@ -226,11 +322,14 @@ async function addItem() {
   const qtyEl = $("add-qty");
   const name = nameEl.value.trim();
   if (!name) return;
+  const cs = chars();
+  const payload = {
+    name,
+    target_qty: parseInt(qtyEl.value, 10) || 0,
+  };
+  if (cs.length > 1) payload.character_id = parseInt($("add-char").value, 10);
   try {
-    const result = await jsonPost("/api/items", {
-      name,
-      target_qty: parseInt(qtyEl.value, 10) || 0,
-    });
+    const result = await jsonPost("/api/items", payload);
     STATE = result;
     nameEl.value = "";
     qtyEl.value = "";
@@ -287,7 +386,7 @@ function handleSetup(body) {
     return;
   }
   if (body.reason === "choose_location") {
-    showMarketPicker(body.locations, panel);
+    showMarketPicker(body.character_id, body.character_name, body.locations, panel);
     return;
   }
   if (body.reason === "no_orders") {
@@ -297,10 +396,21 @@ function handleSetup(body) {
   notice(body.error || "Setup needed", "warn");
 }
 
-function showMarketPicker(locations, panel) {
+async function openMarketPicker(c) {
+  try {
+    const { locations } = await api(`/api/locations?character_id=${c.character_id}`);
+    showMarketPicker(c.character_id, c.name, locations, $("setup"));
+  } catch (e) {
+    if (e.status === 409) handleSetup(e.body);
+    else notice(e.message, "bad");
+  }
+}
+
+function showMarketPicker(cid, charName, locations, panel) {
   panel.innerHTML = "";
   const h = document.createElement("h2");
-  h.textContent = t("choose_market");
+  h.textContent = charName && chars().length > 1
+    ? t("choose_market_for", { name: charName }) : t("choose_market");
   const p = document.createElement("p");
   p.className = "hint";
   p.style.margin = "0 0 10px";
@@ -308,10 +418,11 @@ function showMarketPicker(locations, panel) {
   panel.append(h, p);
   const list = document.createElement("div");
   list.className = "market-picker";
+  const current = chars().find((c) => c.character_id === cid);
   for (const loc of locations || []) {
     const b = document.createElement("button");
     b.className = "market-option";
-    if (STATE && STATE.settings.location_id === loc.location_id) b.classList.add("current");
+    if (current && current.location_id === loc.location_id) b.classList.add("current");
     const nm = document.createElement("span");
     nm.textContent = loc.name || `Location ${loc.location_id}`;
     const meta = document.createElement("span");
@@ -319,7 +430,7 @@ function showMarketPicker(locations, panel) {
     meta.textContent = t("n_orders", { n: loc.orders });
     b.append(nm, meta);
     b.addEventListener("click", async () => {
-      STATE = await jsonPost("/api/settings", {
+      STATE = await jsonPost(`/api/characters/${cid}/location`, {
         location_id: loc.location_id,
         location_name: loc.name,
       });
@@ -334,8 +445,7 @@ function showMarketPicker(locations, panel) {
   panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-async function copyMultibuy() {
-  const text = STATE && STATE.multibuy;
+async function copyText(text) {
   if (!text) { notice(t("nothing_to_copy"), "warn"); return; }
   try {
     await navigator.clipboard.writeText(text);
@@ -356,6 +466,8 @@ async function saveSettings() {
     count_hangar: $("set-hangar").checked,
     auto_import: $("set-import").checked,
     buy_lot_size: parseInt($("set-lot").value, 10) || 0,
+    restock_threshold_pct: parseInt($("set-threshold").value, 10) || 25,
+    merge_characters: $("set-merge").checked,
   });
   render();
 }
@@ -372,11 +484,30 @@ async function loadSuggestions() {
   }
 }
 
+async function checkUpdate() {
+  try {
+    const info = await api("/api/update");
+    if (!info.update_available) return;
+    const el = $("update-banner");
+    el.innerHTML = "";
+    el.className = "notice good";
+    el.append(document.createTextNode(
+      t("update_available", { v: info.latest }) + " "));
+    const a = document.createElement("a");
+    a.href = info.url;
+    a.target = "_blank";
+    a.rel = "noopener";
+    a.textContent = t("update_download");
+    el.appendChild(a);
+    el.hidden = false;
+  } catch { /* GitHub unreachable - never make the tool look broken */ }
+}
+
 // --------------------------------------------------------------------- boot
 
 function wire() {
   $("refresh").addEventListener("click", doRefresh);
-  $("copy").addEventListener("click", copyMultibuy);
+  $("copy").addEventListener("click", () => copyText(STATE && STATE.multibuy));
   $("add-btn").addEventListener("click", addItem);
   $("add-name").addEventListener("keydown", (e) => { if (e.key === "Enter") addItem(); });
   $("add-qty").addEventListener("keydown", (e) => { if (e.key === "Enter") addItem(); });
@@ -393,22 +524,11 @@ function wire() {
   $("set-hangar").addEventListener("change", saveSettings);
   $("set-import").addEventListener("change", saveSettings);
   $("set-lot").addEventListener("change", saveSettings);
-  $("logout").addEventListener("click", async () => {
-    await jsonPost("/api/logout", {});
-    location.reload();
-  });
-  $("change-market").addEventListener("click", async () => {
-    try {
-      const { locations } = await api("/api/locations");
-      showMarketPicker(locations, $("setup"));
-    } catch (e) {
-      if (e.status === 409) handleSetup(e.body);
-      else notice(e.message, "bad");
-    }
-  });
+  $("set-threshold").addEventListener("change", saveSettings);
+  $("set-merge").addEventListener("change", saveSettings);
 
-  $("lang-toggle").addEventListener("click", async () => {
-    LANG = LANG === "en" ? "hr" : "en";
+  $("lang-select").addEventListener("change", async () => {
+    LANG = $("lang-select").value;
     STATE = await jsonPost("/api/settings", { language: LANG });
     render();
   });
@@ -419,8 +539,9 @@ async function boot() {
   STATE = await api("/api/state");
   LANG = (STATE.settings && STATE.settings.language) || "en";
   render();
-  if (!STATE.character) notice(t("login_needed"), "warn");
+  if (!chars().length) notice(t("login_needed"), "warn");
   loadSuggestions();
+  checkUpdate();
 }
 
 boot();

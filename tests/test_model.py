@@ -119,6 +119,27 @@ def test_lot_size_rounds_up_never_down():
     assert model.buy_qty(100, 45, 0, lot_size=0) == 55
 
 
+def test_threshold_is_a_reorder_point_not_a_scaler():
+    """Below the line: top up to the FULL target. At or above it: buy nothing.
+    A sold-out item always triggers, whatever the threshold."""
+    assert model.buy_qty(1000, 500, 0, threshold_pct=25) == 0    # 50% - hold
+    assert model.buy_qty(1000, 250, 0, threshold_pct=25) == 0    # exactly 25%
+    assert model.buy_qty(1000, 249, 0, threshold_pct=25) == 751  # just below
+    assert model.buy_qty(1000, 0, 0, threshold_pct=25) == 1000   # sold out
+    assert model.buy_qty(1000, 999, 0, threshold_pct=100) == 1   # legacy mode
+
+
+def test_threshold_counts_the_hangar_as_stock_too():
+    # 200 listed + 100 hangar = 30% of 1000: above a 25% line.
+    assert model.buy_qty(1000, 200, 100, threshold_pct=25) == 0
+    assert model.buy_qty(1000, 200, 100, count_hangar=False,
+                         threshold_pct=25) == 800
+
+
+def test_threshold_and_lot_size_compose():
+    assert model.buy_qty(1000, 100, 0, lot_size=400, threshold_pct=25) == 1200
+
+
 def test_sold_out_is_its_own_status():
     assert model.row_status(target=100, listed=0, buy=100, active=True) == "sold_out"
     assert model.row_status(100, 40, 60, True) == "low"
@@ -176,6 +197,37 @@ def test_totals_summarise_the_page():
     assert t["tracked"] == 2 and t["paused"] == 1
     assert t["buy_lines"] == 1 and t["buy_units"] == 35
     assert t["listed_units"] == 110 and t["hangar_units"] == 5
+
+
+# ------------------------------------------------------------ multi-character
+
+def test_merge_sums_the_same_item_across_characters():
+    benji = model.build_rows(_items((34, "Tritanium", 1000, 1)),
+                             {34: {"listed_qty": 100, "price": 6.0}})
+    alt = model.build_rows(_items((34, "Tritanium", 500, 1),
+                                  (35, "Pyerite", 50, 1)),
+                           {34: {"listed_qty": 50, "price": 5.0}})
+    merged = {r["type_id"]: r for r in model.merge_rows([benji, alt])}
+    assert merged[34]["target_qty"] == 1500
+    assert merged[34]["listed_qty"] == 150
+    assert merged[34]["buy_qty"] == 900 + 450
+    assert merged[34]["price"] == 5.0       # lowest across characters
+    assert merged[35]["buy_qty"] == 50
+
+
+def test_merge_ignores_a_characters_paused_copy():
+    """Pausing an item on one character must not drag the other's numbers."""
+    a = model.build_rows(_items((34, "Tritanium", 1000, 1)), {})
+    b = model.build_rows(_items((34, "Tritanium", 500, 0)), {})
+    merged = model.merge_rows([a, b])[0]
+    assert merged["target_qty"] == 1000
+    assert merged["buy_qty"] == 1000
+    assert merged["status"] == "sold_out"
+
+
+def test_merge_of_only_paused_copies_is_paused():
+    a = model.build_rows(_items((34, "Tritanium", 1000, 0)), {})
+    assert model.merge_rows([a])[0]["status"] == "paused"
 
 
 # ----------------------------------------------------------------- importing

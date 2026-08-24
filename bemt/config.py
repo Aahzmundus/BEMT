@@ -33,17 +33,30 @@ CALLBACK_URL = f"http://localhost:{PORT}/callback"
 DEFAULT_CLIENT_ID = "d5d3e09c1d0e47649cccb6ea5d2cefc8"
 
 
+#: Where releases live; the update check watches this repository.
+GITHUB_REPO = "Aahzmundus/BEMT"
+
+
 class Config(BaseModel):
     esi_client_id: str = DEFAULT_CLIENT_ID
 
-    # Whose orders we read. Set by the SSO login.
+    # Legacy (pre-0.1.1, single character). Kept so the one-time database
+    # migration can hand existing items and the chosen market to the character
+    # this install was logged in as. Characters and their markets now live in
+    # the `characters` table.
     character_id: int | None = None
     character_name: str = ""
-
-    # The one market being seeded. Picked from the character's own orders on
-    # first refresh (or in Settings); never hardcoded.
     location_id: int | None = None
     location_name: str = ""
+
+    #: Show every character's list folded into one big buy list (quantities
+    #: summed), or one section per character with its own copy button.
+    merge_characters: bool = True
+
+    #: Reorder point, percent of target. An item is only bought once its stock
+    #: falls below this share of the target - and then it tops back up to the
+    #: full target. 100 = buy on any deficit.
+    restock_threshold_pct: int = 25
 
     #: Subtract stock sitting in the station hangar from what needs buying.
     #: Needs the assets scope; turn it off to plan purely off market orders.

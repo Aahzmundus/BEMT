@@ -96,6 +96,16 @@ def finish_login(client_id: str, code: str, state: str) -> dict:
             (char_id, name, tok["refresh_token"], tok["access_token"],
              time.time() + tok["expires_in"] - 60, scope_string()),
         )
+        # A pre-0.1.1 database migrated while logged out leaves its items on
+        # character 0; the first character to log in adopts them, so hand-tuned
+        # targets survive the upgrade.
+        only_one = c.execute("SELECT COUNT(*) AS n FROM characters"
+                             ).fetchone()["n"] == 1
+        if only_one:
+            for table in ("items", "stock"):
+                c.execute(f"UPDATE OR IGNORE {table} SET character_id=? "
+                          "WHERE character_id=0", (char_id,))
+                c.execute(f"DELETE FROM {table} WHERE character_id=0")
     return {"character_id": char_id, "name": name}
 
 

@@ -60,6 +60,12 @@ To je cijeli krug.
 | **Hangar** | Koliko ih već imaš u hangaru na toj stanici. |
 | **Kupi** | Cilj − Na tržištu − Hangar. To je ono što ide na multibuy listu. |
 
+Predmet se pojavljuje na listi za kupnju tek kad mu zaliha padne ispod **praga
+nadopune** — po defaultu četvrtine cilja. Nalog koji je još 80% pun ostavlja se
+na miru, a kad padne ispod 25%, kupuješ odjednom natrag do punog cilja. Ako
+radije nadopunjuješ svaku manjkavu jedinicu svaki put, u Postavkama stavi prag
+na 100.
+
 Obojana točkica s lijeve strane odmah pokazuje stanje:
 
 - 🔴 **crveno** — rasprodano, ničega više nema na tržištu
@@ -91,6 +97,22 @@ broj koji si sam upisao.
 
 ---
 
+## Više likova
+
+Možeš prijaviti više od jednog lika: otvori **Postavke → Dodaj lika** i odobri
+sljedećeg. Svaki lik ima svoju listu predmeta, svoje ciljeve i svoje tržište.
+
+Po defaultu je sve **spojeno u jednu veliku listu za kupnju** — isti predmet
+koji trebaju dva lika postaje jedan redak sa zbrojenim količinama, pa jedan
+odlazak u kupovinu pokriva sve. Odznači *Spoji sve likove* u Postavkama da
+vidiš listu svakog lika zasebno, svaku s vlastitim gumbom za kopiranje (i tamo
+uređuješ ciljeve pojedinog lika).
+
+Svaki lik u Postavkama ima svoje **Promijeni tržište** i **Odjavu**. Odjava
+lika uklanja i njegove predmete.
+
+---
+
 ## Postavke
 
 - **Oduzmi zalihu koja već stoji u hangaru** — uključeno po defaultu. Ono što
@@ -98,11 +120,18 @@ broj koji si sam upisao.
   prema tržišnim nalozima.
 - **Automatski prati nove predmete iz mojih prodajnih naloga** — uključeno po
   defaultu. To je automatski uvoz.
+- **Nadopuni kad zaliha padne ispod (% cilja)** — prag nadopune opisan gore.
+  Default 25.
 - **Zaokruži količine za kupnju na višekratnik od** — stavi npr. 100 ako voliš
   nadopunjavati u okruglim serijama. 0 znači bez zaokruživanja.
-- **Promijeni tržište** — ako preseliš operaciju drugdje.
-- **EN / HR** — gumb gore desno prebacuje cijelo sučelje između engleskog i
-  hrvatskog.
+- **Spoji sve likove u jednu listu za kupnju** — vidi gore.
+- **Likovi** — dodaj lika, promijeni likovo tržište ili ga odjavi.
+- **EN / HR / NL / FR** — izbornik gore desno prebacuje cijelo sučelje između
+  engleskog, hrvatskog, nizozemskog i francuskog.
+
+Kad na GitHubu izađe novija verzija BEMT-a, na vrhu stranice pojavi se traka s
+poveznicom za preuzimanje. BEMT se nikad ne ažurira sam — novi zip preuzmeš i
+zamijeniš mapu kad tebi odgovara.
 
 ---
 

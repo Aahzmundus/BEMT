@@ -14,7 +14,12 @@
       <span class="market" id="market-label"></span>
     </div>
     <div class="topbar-actions">
-      <button class="lang" id="lang-toggle" title="English / Hrvatski">EN</button>
+      <select class="lang" id="lang-select" title="Language">
+        <option value="en">EN</option>
+        <option value="hr">HR</option>
+        <option value="nl">NL</option>
+        <option value="fr">FR</option>
+      </select>
       <button class="ghost" id="settings-toggle" data-i18n="settings">Settings</button>
       <span class="who" id="who"></span>
     </div>
@@ -35,6 +40,7 @@
       </div>
     </section>
 
+    <div class="notice" id="update-banner" hidden></div>
     <div class="notice" id="notice" hidden></div>
 
     <section class="panel" id="setup" hidden></section>
@@ -52,17 +58,24 @@
         <p class="hint" data-i18n="auto_import_hint">New orders get added with their order size as the target. Your own targets are never overwritten.</p>
       </div>
       <div class="setting">
+        <label><span data-i18n="threshold">Restock when stock drops below (% of target)</span>
+          <input type="number" id="set-threshold" min="1" max="100" step="1" class="qty"></label>
+        <p class="hint" data-i18n="threshold_hint">25 waits until three quarters have sold, then buys back up to the full target. 100 buys any missing amount.</p>
+      </div>
+      <div class="setting">
         <label><span data-i18n="lot_size">Round buy quantities up to multiples of</span>
           <input type="number" id="set-lot" min="0" step="1" class="qty"></label>
         <p class="hint" data-i18n="lot_size_hint">0 means no rounding.</p>
       </div>
       <div class="setting">
-        <span data-i18n="market">Market</span>
-        <div id="market-picker" class="market-picker"></div>
-        <button class="ghost small" id="change-market" data-i18n="change_market">Change market</button>
+        <label><input type="checkbox" id="set-merge">
+          <span data-i18n="merge_characters">Merge all characters into one buy list</span></label>
+        <p class="hint" data-i18n="merge_characters_hint">Off shows each character's list separately, each with its own copy button.</p>
       </div>
       <div class="setting">
-        <button class="ghost small danger" id="logout" data-i18n="log_out">Log out</button>
+        <span data-i18n="characters">Characters</span>
+        <div id="char-list" class="char-list"></div>
+        <a href="/auth/login"><button class="ghost small" data-i18n="add_character">Add character</button></a>
       </div>
     </section>
 
@@ -71,6 +84,7 @@
              data-i18n-ph="add_placeholder" placeholder="Add an item by name…">
       <datalist id="name-suggestions"></datalist>
       <input id="add-qty" type="number" min="0" step="1" class="qty" placeholder="0">
+      <select id="add-char" hidden></select>
       <button class="ghost" id="add-btn" data-i18n="add">Add</button>
     </section>
 

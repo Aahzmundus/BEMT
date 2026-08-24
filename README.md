@@ -61,6 +61,12 @@ That's the whole loop.
 | **Hangar** | How many are already sitting in your hangar at that station. |
 | **Buy** | Target − Listed − Hangar. This is what goes on the multibuy list. |
 
+An item only appears in the buy list once its stock falls below the **restock
+threshold** — a quarter of the target by default. So an order that's still 80%
+full is left alone, and once it drops under 25% you buy back up to the full
+target in one go. Set the threshold to 100 in Settings if you'd rather top up
+every missing unit every time.
+
 The coloured dot on the left tells you the state at a glance:
 
 - 🔴 **red** — sold out, nothing of it left on the market
@@ -92,6 +98,23 @@ overwrites a number you typed in.
 
 ---
 
+## Several characters
+
+You can log in more than one character: open **Settings → Add character** and
+authorise the next one. Each character keeps their own item list, targets and
+market.
+
+By default everything is **merged into one big buy list** — the same item
+needed by two characters becomes one line with the quantities added up, so one
+shopping trip covers everyone. Untick *Merge all characters* in Settings to see
+each character's list separately instead, each with its own copy button (and
+that's also where you edit each character's targets).
+
+Each character row in Settings has its own **Change market** and **Log out**.
+Logging a character out removes their items with them.
+
+---
+
 ## Settings
 
 - **Subtract stock already in the station hangar** — on by default. Items you
@@ -99,11 +122,19 @@ overwrites a number you typed in.
   orders.
 - **Automatically track new items from my sell orders** — on by default. This
   is the auto-import.
+- **Restock when stock drops below (% of target)** — the restock threshold
+  described above. Default 25.
 - **Round buy quantities up to multiples of** — set it to e.g. 100 if you like
   restocking in round lots. 0 means no rounding.
-- **Change market** — if you move your seeding operation somewhere else.
-- **EN / HR** — the button in the top right switches the whole interface
-  between English and Croatian.
+- **Merge all characters into one buy list** — see above.
+- **Characters** — add another character, change a character's market, or log
+  one out.
+- **EN / HR / NL / FR** — the selector in the top right switches the whole
+  interface between English, Croatian, Dutch and French.
+
+When a newer BEMT is released on GitHub, a banner appears at the top of the
+page with a download link. BEMT never updates itself — you download the new
+zip and replace the folder when it suits you.
 
 ---
 

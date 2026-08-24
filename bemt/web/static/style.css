@@ -52,7 +52,12 @@ button.accent { background: var(--accent-2); border-color: var(--accent-2); colo
 button.ghost { background: transparent; }
 button.small { padding: 5px 10px; font-size: 13px; }
 button.danger { color: var(--bad); border-color: #4a2a2f; }
-button.lang { padding: 5px 9px; font-size: 12px; letter-spacing: .08em; }
+select.lang {
+  font: inherit; font-size: 12px; letter-spacing: .08em; cursor: pointer;
+  border-radius: 8px; border: 1px solid var(--line);
+  background: var(--panel-2); color: var(--text); padding: 5px 6px;
+}
+select.lang:focus { outline: none; border-color: var(--accent); }
 button.link { background: none; border: none; color: var(--muted); padding: 4px 6px; }
 button.link:hover { color: var(--text); }
 
@@ -157,6 +162,30 @@ tr.paused .dot { background: var(--line); }
 .grid input.target.saved { border-color: var(--accent-2); }
 
 .empty { color: var(--muted); text-align: center; padding: 30px 0; }
+
+/* ------------------------------------------------------------- characters */
+.char-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+.char-row { display: flex; align-items: center; gap: 10px; }
+.char-row .char-name { font-weight: 600; }
+.char-row .meta { color: var(--muted); font-size: 13px; flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Separate view: one header row per character above their items. */
+.grid tr.char-head td {
+  padding-top: 18px; border-bottom: 1px solid var(--line);
+}
+.grid tr.char-head .meta { color: var(--muted); font-size: 13px; }
+.grid tr.char-head button { margin-left: 12px; padding: 3px 10px; font-size: 12px; }
+.grid tr.char-head:hover { background: none; }
+
+/* Update banner link */
+.notice a { color: var(--accent); font-weight: 600; }
+
+/* Add-bar character selector (only shown with several characters) */
+.addbar select {
+  font: inherit; background: var(--panel-2); color: var(--text);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+}
 
 .center-cta { text-align: center; padding: 26px 0; }
 .center-cta p { color: var(--muted); }
